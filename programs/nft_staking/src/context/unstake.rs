@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{metadata::{mpl_token_metadata::instructions::{FreezeDelegatedAccountCpi, FreezeDelegatedAccountCpiAccounts, Revoke, ThawDelegatedAccountCpi, ThawDelegatedAccountCpiAccounts}, Metadata, MetadataAccount, ThawDelegatedAccount}, token::{revoke, Approve, Mint, Token, TokenAccount}};
-
+use anchor_spl::{metadata::{MasterEditionAccount, Metadata, MetadataAccount}, token::{Revoke, revoke, Mint, Token, TokenAccount}};
+use mpl_token_metadata::instructions::{ThawDelegatedAccountCpi, ThawDelegatedAccountCpiAccounts};
 use crate::state::user_account::UserAccount;
 use crate::state::stake_account::StakeAccount;
 use crate::state::stake_config::StakeConfig;
@@ -28,7 +28,7 @@ pub struct Unstake<'info> {
         seeds::program = metadata_program.key(),
         bump,
     )]
-    pub edition: Account<'into, MasterEditionAccount>,
+    pub edition: Account<'info, MasterEditionAccount>,
     #[account (
         seeds = [b"config".as_ref()],
         bump = config.bump,
@@ -52,14 +52,14 @@ pub struct Unstake<'info> {
     pub metadata_program: Program<'info, Metadata>,
     
 }
-impl<'info> Unstaketake<'info> {
+impl<'info> Unstake<'info> {
     pub fn unstake(&mut self) -> Result<()> {
         
-        let time_elapsed= ((Clock::get()?.unix_timestamp - self.stake_account.stakep_at) / 86400) as u32;
+        let time_elapsed= ((Clock::get()?.unix_timestamp - self.stake_account.staked_at) / 86400) as u32;
 
         require!(time_elapsed >= self.config.freeze_period, StakeError::FreezePeriodNotPassed);
         
-        self.user_account.points += time_elapsed as u32 * self.config.points_per_stake as u32;
+        self.user_account.points_per_stake += time_elapsed as u32 * self.config.points_per_stake as u32;
 
         let seeds: &[&[u8]; 4] = &[
             b"stake",
@@ -85,10 +85,10 @@ impl<'info> Unstaketake<'info> {
                 mint,
                 token_program,
             }
-        ).invoke_signed(signe_seeds)?;
+        ).invoke_signed(signer_seeds)?;
 
         let cpi_program: AccountInfo<'_> = self.token_program.to_account_info();
-        let cpi_accounts = Revoke {
+        let cpi_accounts = Revoke {  
             source: self.mint_ata.to_account_info(),
             authority: self.user.to_account_info()
         };
@@ -96,7 +96,7 @@ impl<'info> Unstaketake<'info> {
         revoke(cpi_ctx)?;
         self.user_account.amount_staked -= 1;
 
-        ok(())
+        Ok(())
     }
 
 }

@@ -2,15 +2,15 @@ use anchor_lang::prelude::*;
 
 declare_id!("3TCNAjGtkVECHy9ieffxYp2VCetaW9DD1jTKAWE8jABE");
 
-mod state;
-mod context;
+pub mod context;
 use context::*;
+pub mod state;
 use state::*;
-mod error;
+pub mod error;
 use error::*;
 
 #[program]
-pub mod nft_staking {
+    pub mod nft_staking {
     use super::*;
 
     pub fn initialize_config(ctx: Context<InitializeConfig>, points_per_stake: u8, max_stake: u8, freeze_period: u32) -> Result<()> {
@@ -28,7 +28,9 @@ pub mod nft_staking {
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
         ctx.accounts.unstake()
     }
+    pub fn claim(ctx: Context<Claim>) -> Result<()> {
+        ctx.accounts.claim()?;
+        Ok(())
+    }
 }
 
-#[derive(Accounts)]
-pub struct Initialize {}

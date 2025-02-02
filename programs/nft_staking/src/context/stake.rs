@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{metadata::{Metadata, MetadataAccount}, token::{Approve, approve, Mint, Token, TokenAccount}};
-use mpl_token_metadata::instruction::{FreezeDelegatedAccount, FreezeDelegatedAccountCpiAccounts};
+use anchor_spl::{metadata::{Metadata, MetadataAccount, MasterEditionAccount}, token::{Approve, approve, Mint, Token, TokenAccount}};
+use mpl_token_metadata::instructions::{FreezeDelegatedAccountCpi, FreezeDelegatedAccountCpiAccounts};
 use crate::state::user_account::UserAccount;
 use crate::state::stake_account::StakeAccount;
 use crate::state::stake_config::StakeConfig;
@@ -22,20 +22,20 @@ pub struct Stake<'info> {
     #[account(
         seeds = [
             b"metadata",
-            metadata_program.key(),
+            metadata_program.key().as_ref(),
             mint.key().as_ref()
         ],
         seeds::program = metadata_program.key(),
         bump,
         constraint = metadata.collection.as_ref().unwrap().key.as_ref() == collection_mint.key().as_ref(),
-        constraint = metadat.collection.as_ref().unwrap().verified == true,
+        constraint = metadata.collection.as_ref().unwrap().verified == true,
     )]
     
     pub metadata: Account<'info, MetadataAccount>,
     #[account(
         seeds = [
             b"metadata",
-            metadata_program.key(),
+            metadata_program.key().as_ref(),
             mint.key().as_ref(),
             b"edition"
         ],
@@ -64,13 +64,13 @@ pub struct Stake<'info> {
     )]
     pub user_account: Account<'info, UserAccount>,
     pub system_program: Program<'info, System>,
-    pub token_program: Interface<'info, Token>,
+    pub token_program: Program<'info, Token>,
     pub metadata_program: Program<'info, Metadata>,
 }
 impl<'info> Stake<'info> {
     pub fn stake(&mut self, bumps: &StakeBumps) -> Result<()> {
         
-        require!(self.user_account.amount_staked > stake_config.max_stake, StakeError::MaxStakedreached);
+        require!(self.user_account.amount_staked >= self.config.max_stake, StakeError::MaxStakedreached);
         
         self.stake_account.set_inner(StakeAccount {
             owner: self.user.key(),
